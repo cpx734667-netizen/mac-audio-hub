@@ -94,8 +94,13 @@
 ### 构建
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/cpx734667-netizen/mac-audio-hub.git
 cd mac-audio-hub
+```
+
+或直接下载：[github.com/cpx734667-netizen/mac-audio-hub](https://github.com/cpx734667-netizen/mac-audio-hub)
+
+```bash
 ./build.sh            # 构建到 build/Mac 音频枢纽.app
 ./build.sh --install  # 构建并复制到 ~/Desktop/Mac 音频枢纽.app
 ```
@@ -363,8 +368,13 @@ build.sh                   构建/安装脚本
 # 依赖：macOS 14+、Xcode Command Line Tools
 xcode-select --install
 
-git clone <this-repo>
+git clone https://github.com/cpx734667-netizen/mac-audio-hub.git
 cd mac-audio-hub
+```
+
+或直接下载：[github.com/cpx734667-netizen/mac-audio-hub](https://github.com/cpx734667-netizen/mac-audio-hub)
+
+```bash
 ./build.sh
 open "build/Mac 音频枢纽.app"
 
