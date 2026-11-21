@@ -1,0 +1,456 @@
+import Foundation
+
+/// 内嵌的浏览器控制页面：设备端打开后即可作为音响播放
+enum WebAssets {
+
+    static let indexHTML = ##"""
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mac 音箱</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1e28;
+    --line: #2a3040;
+    --text: #e8ecf4;
+    --dim: #8b93a7;
+    --accent: #5b8cff;
+    --ok: #34d399;
+    --bad: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #232a3d 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 36px 28px 30px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    text-align: center;
+  }
+  .speaker {
+    width: 96px; height: 96px;
+    margin: 0 auto 22px;
+    border-radius: 28px;
+    background: linear-gradient(145deg, #2c3550, #1c2130);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 2px 6px rgba(255,255,255,.08), 0 10px 26px rgba(0,0,0,.4);
+    position: relative;
+  }
+  .speaker .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--dim);
+    transition: all .3s ease;
+    box-shadow: 0 0 0 0 rgba(52,211,153,0);
+  }
+  .speaker.playing .dot { background: var(--ok); box-shadow: 0 0 18px 4px rgba(52,211,153,.45); }
+  .speaker.connecting .dot { background: #fbbf24; }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+  .sub { color: var(--dim); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--dim); }
+  .status .led { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); }
+  .status.ok .led { background: var(--ok); }
+  .status.bad .led { background: var(--bad); }
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; margin-top: 26px;
+    padding: 16px 0;
+    border: none; border-radius: 16px;
+    font-size: 17px; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg, #5b8cff, #6f6bff);
+    cursor: pointer;
+    transition: transform .12s ease, opacity .2s ease, background .2s ease;
+    box-shadow: 0 10px 24px rgba(91,140,255,.28);
+  }
+  .btn:active { transform: scale(.97); }
+  .btn.off { background: linear-gradient(135deg, #39415a, #2b3145); box-shadow: none; }
+  .row { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .vol-icon { color: var(--dim); font-size: 14px; width: 20px; text-align: center; }
+  input[type=range] {
+    flex: 1; height: 36px; margin: 0;
+    -webkit-appearance: none; appearance: none;
+    background: transparent; outline: none; touch-action: none;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px; background: var(--line);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px; margin-top: -10px;
+    border-radius: 50%; background: var(--accent);
+    border: none; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  }
+  input[type=range]::-moz-range-track {
+    height: 6px; border-radius: 3px; background: var(--line);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+  }
+  .name-row { margin-top: 16px; display: flex; gap: 8px; }
+  .name-row input {
+    flex: 1; background: #141824; border: 1px solid var(--line); border-radius: 12px;
+    color: var(--text); font-size: 14px; padding: 10px 14px; outline: none;
+  }
+  .name-row input:focus { border-color: var(--accent); }
+  .hint { margin-top: 20px; font-size: 12px; color: var(--dim); line-height: 1.6; }
+  .badge { display: inline-block; margin-top: 14px; font-size: 12px; color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="speaker" id="speaker">
+    <div class="dot"></div>
+  </div>
+  <h1>Mac 音箱</h1>
+  <p class="sub" id="macInfo">正在连接你的 Mac…</p>
+  <div class="status" id="status"><span class="led"></span><span id="statusText">连接中</span></div>
+  <button class="btn off" id="playBtn" disabled onclick="togglePlay()">
+    <span id="playIcon">▶</span><span id="playText">开始播放</span>
+  </button>
+  <div class="row">
+    <span class="vol-icon">🔈</span>
+    <input type="range" id="vol" min="0" max="100" value="80" oninput="setVol(this.value)">
+    <span class="vol-icon">🔊</span>
+  </div>
+  <div class="name-row">
+    <input type="text" id="devName" placeholder="设备名称" maxlength="20" onchange="sendName()">
+  </div>
+  <div class="badge" id="spec">—</div>
+  <div class="badge" id="dbg" style="margin-top:8px;display:none">—</div>
+  <p class="hint">需与 Mac 连接同一 WiFi。<br>播放 Mac 正在发出的所有声音。</p>
+</div>
+
+<script>
+let ws = null;
+let ctx = null;
+let gain = null;
+let processor = null;
+let pcmBuffer = new Float32Array(0);
+let ready = false;
+let playing = false;
+let wantPlay = false;
+let reconnectTimer = null;
+let decode16 = false; // 高效传输模式（Int16）由 ready/state 消息的 format 字段决定
+
+// 缓冲策略：所有设备统一目标延迟（毫秒），实现多设备同步
+// 性能优化版：目标 300ms（更跟手），上限 500ms（仅严重积压才丢帧），下限 150ms（局域网抖动容忍）
+const TARGET_LATENCY_MS = 300;   // 目标缓冲水位（所有设备一致）
+const MAX_LATENCY_MS = 500;      // 超过上限才强制丢帧（平滑回目标水位）
+const MIN_LATENCY_MS = 150;      // 低于下限暂停消费等数据（防爆音）
+
+const $ = id => document.getElementById(id);
+const speaker = $('speaker');
+
+function setStatus(text, cls) {
+  const st = $('status');
+  st.className = 'status ' + (cls || '');
+  $('statusText').textContent = text;
+}
+function setSpec(text) { $('spec').textContent = text; }
+// 播放按钮：根据播放状态与 AudioContext 状态显示（未运行时引导点击恢复）
+function updatePlayBtn() {
+  const needResume = ctx && ctx.state !== 'running';
+  if ($('playBtn').disabled) return;
+  if (needResume) {
+    $('playIcon').textContent = '▶';
+    $('playText').textContent = '恢复播放';
+    $('playBtn').classList.add('off');
+  } else {
+    $('playIcon').textContent = playing ? '❚❚' : '▶';
+    $('playText').textContent = playing ? '停止播放' : '开始播放';
+    $('playBtn').classList.toggle('off', !playing);
+  }
+}
+// 诊断指示：数据帧速率 + 音频上下文状态（用户反馈问题时提供这些信息）
+let recvFrames = 0;
+let lastStatsAt = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  const secs = (now - lastStatsAt) / 1000;
+  if (secs >= 1) {
+    const rate = recvFrames / secs;
+    recvFrames = 0; lastStatsAt = now;
+    const st = ctx ? ctx.state : '未创建';
+    $('dbg').style.display = '';
+    $('dbg').textContent = '数据 ' + rate.toFixed(0) + ' 帧/s · ' + st;
+  }
+}, 500);
+function deviceName() {
+  let n = localStorage.getItem('macspeaker.name');
+  if (!n) {
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad/i.test(ua)) n = 'iPhone';
+    else if (/Android/i.test(ua)) n = 'Android 设备';
+    else if (/Mac/i.test(ua)) n = '我的 Mac';
+    else if (/Windows/i.test(ua)) n = 'Windows 设备';
+    else n = '浏览器设备';
+  }
+  return n;
+}
+// 浏览器生成并持久化的设备唯一 ID：服务器据此识别"同一设备"，只踢同设备的旧连接
+function deviceId() {
+  let id = localStorage.getItem('macspeaker.did');
+  if (!id) {
+    id = 'd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('macspeaker.did', id);
+  }
+  return id;
+}
+function sendName() {
+  const n = $('devName').value.trim();
+  if (!n) return;
+  localStorage.setItem('macspeaker.name', n);
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'name', name: n}));
+}
+
+function initAudio() {
+  if (ctx) return;
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  } catch (e) {
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e2) { setStatus('当前浏览器不支持音频播放', 'bad'); return; }
+  }
+  gain = ctx.createGain();
+  gain.gain.value = 0.8;
+  // ScriptProcessorNode：全平台兼容（iOS Safari 无法从 blob 加载 AudioWorklet 模块）
+  // 2048 样本 ≈ 43ms，降低主线程回调频率，iOS 上更稳
+  processor = ctx.createScriptProcessor(2048, 2, 2);
+  processor.onaudioprocess = (e) => {
+    const outL = e.outputBuffer.getChannelData(0);
+    const outR = e.outputBuffer.getChannelData(1);
+    const n = outL.length;
+    const srcRate = 48000;
+    // 缓冲水位低于下限：等待数据，输出静音（防爆音）
+    const minSamples = (MIN_LATENCY_MS / 1000) * ctx.sampleRate;
+    if (pcmBuffer.length / 2 < minSamples) return;
+    if (ctx.sampleRate === srcRate) {
+      if (pcmBuffer.length < n * 2) return;
+      for (let i = 0; i < n; i++) {
+        outL[i] = pcmBuffer[i * 2];
+        outR[i] = pcmBuffer[i * 2 + 1];
+      }
+      pcmBuffer = pcmBuffer.subarray(n * 2);
+    } else {
+      // Catmull-Rom 三次插值重采样：清晰度明显优于线性插值（保留高频细节）
+      const ratio = srcRate / ctx.sampleRate;
+      const need = Math.ceil(n * ratio) * 2;
+      if (pcmBuffer.length < need) return;
+      const resampled = resampleCubic(pcmBuffer, ratio, n);
+      for (let i = 0; i < n; i++) {
+        outL[i] = resampled[i * 2];
+        outR[i] = resampled[i * 2 + 1];
+      }
+      pcmBuffer = pcmBuffer.subarray(need);
+    }
+  };
+  processor.connect(gain).connect(ctx.destination);
+  ctx.onstatechange = () => {
+    if (ctx.state === 'interrupted') {
+      setStatus('音频被系统中断：请关闭 iPhone 上其他播放中的 App，再点按钮恢复', 'bad');
+    }
+    updatePlayBtn();
+  };
+  setSpec((ctx.sampleRate / 1000).toFixed(1) + ' kHz · 双声道');
+}
+
+// iOS 的 interrupted 状态常无法 resume：重建音频上下文兜底
+function rebuildAudio() {
+  try { if (processor) processor.disconnect(); } catch (e) {}
+  try { if (gain) gain.disconnect(); } catch (e) {}
+  try { if (ctx) ctx.close(); } catch (e) {}
+  ctx = null; gain = null; processor = null; pcmBuffer = new Float32Array(0);
+  initAudio();
+}
+
+// Catmull-Rom 三次插值重采样：比线性插值清晰（保留高频细节），CPU 负担小
+// src 为交错样本对数组；ratio = srcRate / dstRate；输出 n 帧（2*n 个样本）
+function resampleCubic(src, ratio, n) {
+  const out = new Float32Array(n * 2);
+  const srcFrames = src.length / 2;
+  const last = srcFrames - 1;
+  for (let i = 0; i < n; i++) {
+    const pos = i * ratio;
+    const i0 = Math.floor(pos);
+    const frac = pos - i0;
+    const jm1 = Math.max(i0 - 1, 0) * 2;
+    const j0 = i0 * 2;
+    const j1 = Math.min(i0 + 1, last) * 2;
+    const j2 = Math.min(i0 + 2, last) * 2;
+    for (let ch = 0; ch < 2; ch++) {
+      const p0 = src[jm1 + ch], p1 = src[j0 + ch], p2 = src[j1 + ch], p3 = src[j2 + ch];
+      const a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
+      const b = p0 - 2.5 * p1 + 2 * p2 - 0.5 * p3;
+      const c = -0.5 * p0 + 0.5 * p2;
+      out[i * 2 + ch] = ((a * frac + b) * frac + c) * frac + p1;
+    }
+  }
+  return out;
+}
+
+// 缓冲水位管理：只在超过上限时丢帧回目标水位；正常波动不丢，保证流畅
+function trimBuffer() {
+  if (!ctx) return;
+  const maxSamples = (MAX_LATENCY_MS / 1000) * ctx.sampleRate;
+  const targetSamples = (TARGET_LATENCY_MS / 1000) * ctx.sampleRate;
+  const curSamples = pcmBuffer.length / 2;
+  if (curSamples > maxSamples) {
+    const drop = Math.floor(curSamples - targetSamples);
+    pcmBuffer = pcmBuffer.subarray(Math.max(drop, 1) * 2);
+  }
+}
+
+function connect() {
+  clearTimeout(reconnectTimer);
+  if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const sock = new WebSocket(proto + '://' + location.host + '/ws');
+  sock.binaryType = 'arraybuffer';
+  ws = sock;
+  sock.onopen = () => {
+    setStatus('已连接 Mac', 'ok');
+    speaker.classList.remove('connecting');
+    $('macInfo').textContent = '正在从 Mac 接收音频';
+    sock.send(JSON.stringify({type:'device', id: deviceId(), name: deviceName()}));
+    $('devName').value = deviceName();
+    $('playBtn').disabled = false;
+    if (wantPlay) sendStart();
+  };
+  sock.onmessage = async (e) => {
+    if (typeof e.data === 'string') {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      if (msg.type === 'ready') {
+        decode16 = msg.format === 'int16le';
+        initAudio();
+        ready = true;
+      } else if (msg.type === 'state') {
+        if (msg.format) decode16 = msg.format === 'int16le';
+        if (msg.playing) {
+          speaker.classList.add('playing');
+          if (playing) updatePlayBtn();
+        } else {
+          speaker.classList.remove('playing');
+          if (playing) { playing = false; updatePlayBtn(); }
+        }
+      } else if (msg.type === 'error') {
+        setStatus(msg.message || 'Mac 端音频捕获失败', 'bad');
+        speaker.classList.remove('playing');
+        wantPlay = false;
+        playing = false;
+        updatePlayBtn();
+      }
+    } else {
+      if (playing && e.data) {
+        recvFrames++;
+        let inc;
+        if (decode16) {
+          // 高效模式：Int16 → Float32
+          const i16 = new Int16Array(e.data);
+          inc = new Float32Array(i16.length);
+          for (let i = 0; i < i16.length; i++) inc[i] = i16[i] / 32768;
+        } else {
+          inc = new Float32Array(e.data);
+        }
+        const maxSamples = (MAX_LATENCY_MS / 1000) * ctx.sampleRate;
+        if (pcmBuffer.length + inc.length > maxSamples * 2) {
+          // 严重积压（>500ms）：丢弃旧数据，从最新开始追赶
+          const excess = pcmBuffer.length + inc.length - maxSamples * 2;
+          pcmBuffer = excess >= pcmBuffer.length ? new Float32Array(inc) : pcmBuffer.subarray(excess);
+        }
+        const merged = new Float32Array(pcmBuffer.length + inc.length);
+        merged.set(pcmBuffer, 0);
+        merged.set(inc, pcmBuffer.length);
+        pcmBuffer = merged;
+        trimBuffer();
+      }
+    }
+  };
+  sock.onclose = () => {
+    // 只处理当前活跃连接：旧连接被服务器踢除时忽略其回调，避免重连风暴
+    if (ws !== sock) return;
+    ws = null;
+    playing = false;
+    ready = false;
+    $('playBtn').disabled = true;
+    speaker.classList.remove('playing', 'connecting');
+    setStatus('连接断开，重连中…', 'bad');
+    $('macInfo').textContent = '等待重新连接…';
+    reconnectTimer = setTimeout(connect, 2000);
+  };
+  sock.onerror = () => { try { sock.close(); } catch {} };
+}
+
+function sendStart() {
+  ws.send(JSON.stringify({type:'start'}));
+  playing = true;
+  // iOS：非用户手势下的 resume 会被拒绝；失败时按钮变为「恢复播放」，点击即可
+  if (ctx && ctx.state !== 'running') {
+    ctx.resume().then(() => {
+      updatePlayBtn();
+      if (ctx.state !== 'running') setStatus('已连接，请点击按钮恢复声音', 'bad');
+    }).catch(() => { updatePlayBtn(); setStatus('已连接，请点击按钮恢复声音', 'bad'); });
+  }
+  updatePlayBtn();
+}
+function sendStop() {
+  ws.send(JSON.stringify({type:'stop'}));
+  playing = false;
+  updatePlayBtn();
+}
+
+async function togglePlay() {
+  if (!ws || ws.readyState !== 1) { connect(); return; }
+  // 用户手势中恢复 AudioContext（iOS 必须）
+  let resumed = false;
+  if (ctx && ctx.state !== 'running') {
+    try {
+      await ctx.resume();
+      resumed = ctx.state === 'running';
+    } catch (e) { resumed = false; }
+    if (!resumed && ctx.state === 'interrupted') {
+      // iOS 的 interrupted 无法 resume：重建音频通道，再点一次即可恢复
+      rebuildAudio();
+      setStatus('音频通道已重置，请再点一次播放', 'bad');
+      updatePlayBtn();
+      return;
+    }
+    if (!resumed) { setStatus('无法恢复音频，请刷新页面', 'bad'); return; }
+    setStatus('已连接 Mac', 'ok');
+  }
+  if (playing && !resumed) { sendStop(); speaker.classList.remove('playing'); }
+  else if (!playing) { wantPlay = true; sendStart(); speaker.classList.add('playing'); }
+  // playing && resumed：断线重连后的声音恢复，继续播放
+  updatePlayBtn();
+}
+
+function setVol(v) {
+  if (gain) gain.gain.value = v / 100;
+}
+
+// 初始化
+$('devName').value = deviceName();
+setVol(80);
+connect();
+</script>
+</body>
+</html>
+"""##
+
+}

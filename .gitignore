@@ -1,0 +1,27 @@
+# Build output
+build/
+*.app
+*.dSYM
+DerivedData/
+dist/
+*.zip
+
+# Apple/macOS
+.DS_Store
+*.xcuserstate
+xcuserdata/
+*.p12
+*.cer
+*.key
+*.mobileprovision
+*.entitlements
+
+# Logs / local artifacts
+*.log
+*.tmp
+.env
+.env.*
+
+# Editor
+.vscode/
+.idea/

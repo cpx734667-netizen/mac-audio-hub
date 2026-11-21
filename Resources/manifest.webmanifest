@@ -1,0 +1,10 @@
+{
+  "name": "AirMic 手机麦克风",
+  "short_name": "AirMic",
+  "description": "把手机变成 Mac 的无线麦克风",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060A12",
+  "theme_color": "#060A12",
+  "orientation": "portrait"
+}
