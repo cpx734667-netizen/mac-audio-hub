@@ -1,5 +1,15 @@
 # Changelog
 
+## Windows 1.0.0 — 2026-11
+
+首个 Windows 原生版（.NET 8 / WPF / Kestrel / NAudio）。
+
+- 手机麦克风 8765 HTTPS/WSS，最多 8 路；
+- Windows 系统声音 8787，WASAPI loopback / 进程回环；
+- K 歌页、GSMTC Now Playing、LRCLIB/LRC、统一输出；
+- self-contained win-x64 单文件发布；
+- 34 个自动化测试通过，具体见 `windows/TEST_REPORT.md`。
+
 ## 2.0.0 — 2026-11
 
 首个公开版本。

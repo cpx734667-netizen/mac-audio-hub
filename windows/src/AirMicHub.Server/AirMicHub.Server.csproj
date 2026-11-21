@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>AirMicHub.Server</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AirMicHub.Core\AirMicHub.Core.csproj" />
+    <ProjectReference Include="..\AirMicHub.Audio\AirMicHub.Audio.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\**\*" />
+    <None Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="web" />
+  </ItemGroup>
+</Project>

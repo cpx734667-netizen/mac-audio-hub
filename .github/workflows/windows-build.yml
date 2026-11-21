@@ -1,0 +1,49 @@
+name: windows-build
+
+on:
+  push:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-build.yml"
+  pull_request:
+    paths:
+      - "windows/**"
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore AirMicHub.sln
+
+      - name: Build
+        run: dotnet build AirMicHub.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/AirMicHub.Tests/AirMicHub.Tests.csproj -c Release --no-build
+
+      - name: Publish single-file win-x64
+        run: >
+          dotnet publish src/AirMicHub.App/AirMicHub.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=None -p:DebugSymbols=false
+          -o publish
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AirMicHub-win-x64
+          path: windows/publish/

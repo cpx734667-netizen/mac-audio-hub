@@ -5,6 +5,9 @@
 > 手机麦克风 · Mac 音箱 · K 歌模式 · iPhone 连续互通麦克风  
 > 纯局域网、无需安装手机 App、原生 SwiftUI / ScreenCaptureKit / AVAudioEngine。
 
+> **Windows 原生版 1.0.0 已发布**：Windows 10/11 x64，C# / .NET 8 + WPF + Kestrel + NAudio。  
+> [下载 Windows 版](#windows-原生版-100) · [Windows 源码](windows/) · [Windows 发布页](https://github.com/cpx734667-netizen/mac-audio-hub/releases/tag/windows-v1.0.0)
+
 ![macOS](https://img.shields.io/badge/macOS-14%2B-black)
 ![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange)
 ![License](https://img.shields.io/badge/License-MIT-blue)
@@ -26,6 +29,7 @@
 
 - [它能做什么](#它能做什么)
 - [快速开始](#快速开始)
+- [Windows 原生版 1.0.0](#windows-原生版-100)
 - [使用说明](#使用说明)
   - [手机当麦克风](#1-手机当麦克风)
   - [Mac 声音送到手机](#2-mac-声音送到手机)
@@ -85,8 +89,15 @@
 
 ### 直接下载（可选）
 
-不想自己编译，可以直接从 [GitHub Releases](https://github.com/cpx734667-netizen/mac-audio-hub/releases/latest) 下载 `Mac-Audio-Hub-2.0.0-arm64.zip`，解压后右键 App → **打开**。  
-这是 arm64 / ad-hoc 签名构建，未公证；首次打开可能需要在“系统设置 → 隐私与安全性”里允许。
+**macOS（Apple Silicon）**
+
+[下载 `Mac-Audio-Hub-2.0.0-arm64.zip`](https://github.com/cpx734667-netizen/mac-audio-hub/releases/download/v2.0.0/Mac-Audio-Hub-2.0.0-arm64.zip)，解压后右键 App → **打开**。  
+arm64 / ad-hoc 签名，未公证；首次打开可能需要在“系统设置 → 隐私与安全性”里允许。
+
+**Windows（x64）**
+
+[下载 `AirMicHub-win-x64-1.0.0.zip`](https://github.com/cpx734667-netizen/mac-audio-hub/releases/download/windows-v1.0.0/AirMicHub-win-x64-1.0.0.zip)，解压后双击 `AirMicHub.exe`。  
+self-contained，无需安装 .NET；首次启动允许防火墙“专用网络”。详见 [Windows 版](#windows-原生版-100)。
 
 ### 环境要求
 
@@ -124,6 +135,47 @@ cd mac-audio-hub
 4. 手机点 **开始传音**，允许麦克风；
 5. 在 App 的 **输出音箱** 里选 Mac 内置扬声器或有线音箱；
 6. 点 **测试当前输出** 确认能听到声音。
+
+---
+
+## Windows 原生版 1.0.0
+
+Windows 版是独立的原生 .NET 实现，不是把 macOS App 套壳。它复用了浏览器端协议和手机页面，音频栈、证书、设备管理和服务端用 C# 重写。
+
+- **系统要求**：Windows 10 2004+ / Windows 11，x64；self-contained，无需安装 .NET；
+- **下载**：[`AirMicHub-win-x64-1.0.0.zip`](https://github.com/cpx734667-netizen/mac-audio-hub/releases/download/windows-v1.0.0/AirMicHub-win-x64-1.0.0.zip)（约 75 MB）；
+- **源码**：[`windows/`](windows/) 或 [源码 bundle](https://github.com/cpx734667-netizen/mac-audio-hub/releases/download/windows-v1.0.0/AirMicHub-WindowsPort-1.0.0-github.zip)；
+- **发布页**：[windows-v1.0.0](https://github.com/cpx734667-netizen/mac-audio-hub/releases/tag/windows-v1.0.0)；
+- SHA256（app zip）：`26cef9c1bcd6ce1ab3ba4b85acffe77ed99c864d34f75c7d4587114ff1f7471a`。
+
+<p align="center">
+  <img src="windows/docs/screenshots/mic.png" width="49%" alt="Windows 麦克风页" />
+  <img src="windows/docs/screenshots/karaoke.png" width="49%" alt="Windows K 歌页" />
+</p>
+
+### Windows 快速开始
+
+1. 解压 `AirMicHub-win-x64-1.0.0.zip`，双击 `AirMicHub.exe`；
+2. Windows 防火墙弹窗勾选 **专用网络**，允许 `8765` / `8787` 入站；
+3. **麦克风** 页：手机扫码 `https://<电脑IP>:8765/`，接受自签名证书，点“开始传音”；
+4. 在桌面选择输出设备，点“测试当前输出”确认音箱正确；
+5. **音箱** 页：手机扫码 `http://<电脑IP>:8787/`，点“开始播放”；
+6. **K 歌** 页：平台放伴奏，人声监听；点“统一音乐与人声”让音乐和人声同音箱。
+
+### Windows 与 macOS 的差异
+
+- **iPhone 连续互通麦克风不支持**：这是 macOS 独占；Windows 版使用普通 Windows 输入设备 + 浏览器手机麦克风；
+- **系统声音捕获**：WASAPI loopback / 进程回环，不需要屏幕录制权限；进程回环失败会降级为设备回环，避免回授；
+- **原唱/伴奏**：第三方平台没有公开接口，仍只能在平台 App 内切换；
+- **8787 的 300 ms 缓冲**：和 macOS 版一致，只适合听歌/看视频，不适合 K 歌实时伴奏；
+- **默认输出切换**：使用未公开的 `IPolicyConfig`，失败会提示手动切换，不谎报成功。
+
+### Windows 测试状态
+
+Windows 1.0.0 源码包含 34 个自动化测试（全部通过）和一份 [TEST_REPORT.md](windows/TEST_REPORT.md)。  
+测试环境没有实体手机和第三方平台真人 K 歌，因此手机扫码、真实平台播放两项仍需在目标机器上复验；报告里已逐项标注。
+
+更完整的 Windows 说明见 [windows/README.md](windows/README.md)，差异表见 [windows/docs/DIFFERENCES.md](windows/docs/DIFFERENCES.md)。
 
 ---
 
@@ -294,9 +346,9 @@ ad-hoc 签名的代码要求会随构建变化，macOS 会把它当成新的 App
 
 ### Q：支持 Intel Mac / Windows / Android？
 
-- 当前构建为 Apple Silicon（arm64），Intel 未测试；
-- 手机端只要是现代浏览器即可，Android Chrome 可用；
-- 没有 Windows 版本。
+- macOS 构建为 Apple Silicon（arm64），Intel 未测试；
+- **Windows 10/11 x64 有独立原生版**，见 [Windows 原生版](#windows-原生版-100)；
+- 手机端只要是现代浏览器即可，Android Chrome 可用。
 
 ---
 
@@ -362,6 +414,10 @@ docs/
   USAGE.md                 更细的使用步骤
   TROUBLESHOOTING.md       排错手册
   ARCHITECTURE.md          架构说明
+windows/                   Windows 原生版（.NET 8 / WPF / Kestrel / NAudio）
+  src/                     服务端、音频、UI、歌词
+  docs/DIFFERENCES.md      与 macOS 的差异
+  README.md                Windows 使用/构建说明
 build.sh                   构建/安装脚本
 ```
 
@@ -396,9 +452,22 @@ open "build/Mac 音频枢纽.app"
 
 ---
 
+### Windows 构建
+
+```powershell
+cd windows
+.\build.ps1
+```
+
+要求 .NET SDK 8 + Windows x64。产物在 `windows/dist/`。
+
+---
+
 ## 项目状态与限制
 
-这是一个 **可自用的开发预览版**，不是 App Store 产品。
+这是一个 **可自用的开发预览版**，不是 App Store 产品。macOS 版和 Windows 版是两套原生实现。
+
+### macOS
 
 已验证 / 可用：
 
@@ -419,14 +488,32 @@ open "build/Mac 音频枢纽.app"
 - **Now Playing**：使用 macOS 私有 `MediaRemote` 接口，系统更新可能失效；不打算上架 App Store。
 - **Intel Mac**：未测试。
 
+### Windows 1.0.0
+
+已验证 / 可用：
+
+- 手机麦克风 8765 HTTPS/WSS、8 路混音、30 ms 队列上限；
+- Windows 系统声音 8787、WASAPI 进程回环/设备回环、排除本应用；
+- 三 Tab WPF UI、输出设备选择、测试音、统一输出；
+- K 歌 GSMTC/LRCLIB/LRC/歌词时钟；
+- 34 个自动化测试通过，self-contained 单文件发布。
+
+实验性 / 限制：
+
+- **实体手机扫码 / 第三方平台真人 K 歌未在开发环境实测**，需目标机复验；
+- **iPhone 连续互通麦克风不支持**（macOS 独占）；
+- 原唱/伴奏只能在平台内切换；
+- Windows 默认输出切换依赖未公开 `IPolicyConfig`，可能失效；
+- 进程回环不可用时降级为设备回环，可能捕获本应用监听声；UI/health 会标注。
+
 ---
 
 ## 隐私与安全
 
 - 音频只在 **局域网** 内传输，不上传云端；
 - 手机端使用本地自签名 HTTPS/WSS，首次证书警告是正常的；
-- 证书私钥保存在本机 Keychain，不写入仓库；
-- Mac 系统音频捕获只取声音，不录屏幕，并排除本 App 自身输出；
+- macOS 证书私钥保存在本机 Keychain；Windows 版证书 PFX 使用当前用户 DPAPI 加密，均不写入仓库；
+- Mac 系统音频捕获只取声音，不录屏幕，并排除本 App 自身输出；Windows 版使用 WASAPI loopback/进程回环，不录屏；
 - K 歌歌词匹配会把 **歌名/歌手/专辑/时长** 发送到 [LRCLIB](https://lrclib.net/) 查询歌词；不使用歌词功能时不会请求；
 - 无账号系统、无统计上报、无广告、无遥测；
 - 请只播放你有权使用的音乐；本项目与网易云、QQ 音乐、酷狗、Apple 无关联。
