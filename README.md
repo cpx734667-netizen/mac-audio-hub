@@ -83,6 +83,11 @@
 
 ## 快速开始
 
+### 直接下载（可选）
+
+不想自己编译，可以直接从 [GitHub Releases](https://github.com/cpx734667-netizen/mac-audio-hub/releases/latest) 下载 `Mac-Audio-Hub-2.0.0-arm64.zip`，解压后右键 App → **打开**。  
+这是 arm64 / ad-hoc 签名构建，未公证；首次打开可能需要在“系统设置 → 隐私与安全性”里允许。
+
 ### 环境要求
 
 - macOS 14 Sonoma 及以上（开发环境为 macOS 27）；
