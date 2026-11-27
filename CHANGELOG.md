@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — macOS audio stability
+
+- Fix intermittent clicks/gaps when a 5 ms phone frame arrives partially (partial source chunks are now held/filled instead of skipped).
+- Raise phone jitter buffer from 10/30 ms to 20/60 ms; output target from 15 ms to 20 ms.
+- Add soft-knee limiter and DC blocker to prevent multi-source clipping/thumps.
+- Add `droppedSourceFrames` diagnostics remains available.
+
 ## Windows 1.0.0 — 2026-11
 
 首个 Windows 原生版（.NET 8 / WPF / Kestrel / NAudio）。

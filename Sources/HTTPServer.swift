@@ -156,7 +156,7 @@ final class HTTPServer {
         sources[descriptor.id] = descriptor
         client.sourceID = descriptor.id
         client.channel = channel
-        audio.addSource(id: descriptor.id, name: name, prebufferMilliseconds: 10)
+        audio.addSource(id: descriptor.id, name: name, prebufferMilliseconds: 20, maxQueueMilliseconds: 60)
         emit(.sourceAdded(descriptor))
         NSLog("AirMic source #\(channel) connected: \(name) at \(Int(sampleRate)) Hz")
         return descriptor

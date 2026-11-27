@@ -408,8 +408,8 @@ final class AppModel: ObservableObject {
                 audio.addSource(
                     id: Self.systemMicSourceID,
                     name: avDevice.localizedName,
-                    prebufferMilliseconds: 10,
-                    maxQueueMilliseconds: 25
+                    prebufferMilliseconds: 15,
+                    maxQueueMilliseconds: 40
                 )
                 self.systemMic = capture
                 self.systemMicEnabled = true
@@ -688,8 +688,8 @@ final class AppModel: ObservableObject {
                     audio.addSource(
                         id: Self.localSourceID,
                         name: "本机麦克风",
-                        prebufferMilliseconds: 10,
-                        maxQueueMilliseconds: 15
+                        prebufferMilliseconds: 15,
+                        maxQueueMilliseconds: 30
                     )
                     self.localMicEnabled = true
                     self.sources.removeAll(where: { $0.isLocal })

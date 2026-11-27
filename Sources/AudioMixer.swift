@@ -47,6 +47,7 @@ final class AudioMixer {
         var prebufferFrames: Int
         var maxQueueFrames: Int
         var droppedFrames = 0
+        var lastSample: Float = 0
         var converter: AVAudioConverter?
         var converterInputRate: Double = 0
 
@@ -71,12 +72,23 @@ final class AudioMixer {
             compactIfNeeded()
         }
 
+        /// Returns a full-size chunk even when the network delivered a partial
+        /// frame. Missing samples hold the last received sample instead of
+        /// inserting a hard zero, which used to produce a click every time the
+        /// queue landed just under 5 ms.
         func takeChunk(_ count: Int) -> [Float]? {
-            guard available >= count else { return nil }
-            let start = readIndex
-            let chunk = Array(samples[start..<start + count])
-            readIndex += count
-            compactIfNeeded()
+            guard primed else { return nil }
+            let take = min(count, available)
+            var chunk = [Float](repeating: lastSample, count: count)
+            if take > 0 {
+                let start = readIndex
+                for index in 0..<take {
+                    chunk[index] = samples[start + index]
+                }
+                lastSample = chunk[take - 1]
+                readIndex += take
+                compactIfNeeded()
+            }
             return chunk
         }
 
@@ -205,15 +217,17 @@ final class AudioMixer {
     private var silentChunks = 0
     private var aggregateLevel: Float = 0
     private var volume: Float = 0.9
+    private var dcPreviousInput: Float = 0
+    private var dcPreviousOutput: Float = 0
     private var outputFormat: AVAudioFormat?
     private var selectedOutputDeviceID: AudioDeviceID?
     private var engineError: String?
     private var reconfiguring = false
 
-    private let startSeconds = 0.010
-    private let initialAheadSeconds = 0.015
+    private let startSeconds = 0.015
+    private let initialAheadSeconds = 0.020
     private let maximumAheadSeconds = 0.070
-    private var targetAheadSeconds = 0.015
+    private var targetAheadSeconds = 0.020
 
     var onError: ((String) -> Void)?
 
@@ -257,8 +271,8 @@ final class AudioMixer {
     func addSource(
         id: UUID,
         name: String,
-        prebufferMilliseconds: Double = 10,
-        maxQueueMilliseconds: Double = 30
+        prebufferMilliseconds: Double = 20,
+        maxQueueMilliseconds: Double = 60
     ) {
         queue.async { [weak self] in
             guard let self else { return }
@@ -526,9 +540,7 @@ final class AudioMixer {
     private func mixChunkLocked() {
         guard let format = outputFormat else { return }
         let frameCount = Int(Self.chunkFrames)
-        let usable = sources.values.filter {
-            $0.primed && !$0.muted && $0.available >= frameCount
-        }
+        let usable = sources.values.filter { $0.primed && !$0.muted }
         if usable.isEmpty {
             silentChunks += 1
         }
@@ -547,7 +559,17 @@ final class AudioMixer {
         guard let channels = buffer.floatChannelData else { return }
         var peak: Float = 0
         for index in 0..<frameCount {
-            let value = max(-1.0, min(1.0, mixed[index]))
+            // Remove DC offset/thumps before limiting. A 0.995 one-pole
+            // high-pass at 48 kHz is inaudible on voice but kills DC steps.
+            let raw = mixed[index]
+            let filtered = raw - dcPreviousInput + 0.995 * dcPreviousOutput
+            dcPreviousInput = raw
+            dcPreviousOutput = filtered
+
+            // Soft-knee limiter: avoids hard clipping when two phones or the
+            // local mic peak at the same time.
+            let limited = Self.softLimit(filtered)
+            let value = max(-1.0, min(1.0, limited)) * volume
             channels[0][index] = value
             channels[1][index] = value
             peak = max(peak, abs(value))
@@ -555,6 +577,16 @@ final class AudioMixer {
         aggregateLevel = max(aggregateLevel, peak)
         pending.append(buffer)
         pendingFrames += AVAudioFramePosition(Self.chunkFrames)
+    }
+
+    private static func softLimit(_ value: Float) -> Float {
+        let threshold: Float = 0.92
+        let magnitude = abs(value)
+        guard magnitude > threshold else { return value }
+        let sign: Float = value < 0 ? -1 : 1
+        let room = 1 - threshold
+        let compressed = threshold + room * (1 - exp(-(magnitude - threshold) / room))
+        return sign * compressed
     }
 
     private func scheduleNextLocked() {
@@ -575,6 +607,8 @@ final class AudioMixer {
         aggregateLevel = 0
         underruns = 0
         silentChunks = 0
+        dcPreviousInput = 0
+        dcPreviousOutput = 0
         targetAheadSeconds = initialAheadSeconds
     }
 
